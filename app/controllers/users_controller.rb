@@ -1,20 +1,44 @@
 class UsersController < ApplicationController
-
+    before_action :authorized, only: [:persist]
+  
+    # def show
+    #   @user = User.find(params[:id])
+    #   render json: @user
+    # end
+  
+    # REGISTER
+    def create
+      @user = User.create(user_params)
+      if @user.valid?
+        wristband = encode_token({user_id: @user.id})
+        render json: {user: UserSerializer.new(@user), token: wristband}
+      else
+        render json: {error: "Invalid username or password"}
+      end
+    end
+  
+    # LOGGING IN
     def login
-        
-        @user = User.find_by(name:params[:name],password:params[:password])
-        if @user
-            puts "sup"
-            render {found:"Good"}
-        else
-            puts "err"
-            render json: {error:"error"}
-        end
+      @user = User.find_by(name: params[:name])
+  
+      if @user && @user.authenticate(params[:password])
+        wristband = encode_token({user_id: @user.id})
+        render json: {user: UserSerializer.new(@user), token: wristband}
+      else
+        render json: {error: "Invalid username or password"}
+      end
     end
-
+  
+  
     def persist
+      wristband = encode_token({user_id: @user.id})
+      render json: {user: UserSerializer.new(@user), token: wristband}
     end
-
-
-
-end
+  
+    private
+  
+    def user_params
+      params.permit(:name, :password)
+    end
+  
+  end
